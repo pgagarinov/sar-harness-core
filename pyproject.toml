@@ -1,0 +1,39 @@
+[project]
+name = "harness-core"
+version = "0.1.0"
+requires-python = "==3.13.*"
+dependencies = []
+description = "Shared infrastructure for autonomous research loops: checkpointing, prompt editing, metrics"
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/harness_core"]
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "linux-64", "linux-aarch64"]
+
+[tool.pixi.pypi-dependencies]
+harness-core = { path = ".", editable = true }
+
+[tool.pixi.environments]
+dev = { features = ["dev"], solve-group = "default" }
+
+[tool.pixi.dependencies]
+python = "3.13.*"
+
+[dependency-groups]
+dev = ["pytest>=8,<9"]
+
+[tool.pixi.feature.dev.tasks]
+test = "python -m pytest tests/ -v"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = ["-v", "--tb=short"]

@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.pixi/
+*.egg-info/
+dist/
+build/
+pixi.lock
