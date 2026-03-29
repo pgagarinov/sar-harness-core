@@ -65,6 +65,78 @@ def git_diff_stat(repo_path: Path) -> str:
     return r.stdout.strip()
 
 
+def git_fetch(repo_path: Path, remote_path: Path, refspec: str = "main") -> str | None:
+    """Fetch from another local repo. Returns FETCH_HEAD hash or None on failure."""
+    result = subprocess.run(
+        ["git", "fetch", str(remote_path), refspec],
+        cwd=repo_path,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return None
+    head = subprocess.run(
+        ["git", "rev-parse", "FETCH_HEAD"],
+        cwd=repo_path,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    return head.stdout.strip() if head.returncode == 0 else None
+
+
+def git_cherry_pick(repo_path: Path, *commits: str) -> dict:
+    """Cherry-pick commits. Returns {applied: list[str], conflicts: list[str]}."""
+    applied: list[str] = []
+    conflicts: list[str] = []
+    for commit in commits:
+        result = subprocess.run(
+            ["git", "cherry-pick", commit],
+            cwd=repo_path,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            applied.append(commit)
+        else:
+            conflicts.append(commit)
+            # Abort the failed cherry-pick to leave repo in clean state
+            subprocess.run(
+                ["git", "cherry-pick", "--abort"],
+                cwd=repo_path,
+                check=False,
+                capture_output=True,
+            )
+    return {"applied": applied, "conflicts": conflicts}
+
+
+def git_log_range(
+    repo_path: Path, base: str, head: str = "HEAD"
+) -> list[dict[str, str]]:
+    """List commits between base..head. Returns [{hash, message}, ...]."""
+    result = subprocess.run(
+        ["git", "log", "--oneline", f"{base}..{head}"],
+        cwd=repo_path,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return []
+    commits = []
+    for line in result.stdout.strip().splitlines():
+        if not line:
+            continue
+        parts = line.split(" ", 1)
+        commits.append({
+            "hash": parts[0],
+            "message": parts[1] if len(parts) > 1 else "",
+        })
+    return commits
+
+
 def commit_claude_changes(repo_path: Path) -> bool:
     """Commit .claude/ changes so they survive reverts."""
     result = subprocess.run(
