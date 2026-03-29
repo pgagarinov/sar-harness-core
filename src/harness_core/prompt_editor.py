@@ -33,13 +33,13 @@ def resolve_asset(
     asset_kinds = build_asset_kinds(skill_name, agent_names)
     if name in asset_kinds:
         return claude_dir / asset_kinds[name]
-    # Allow direct relative path under .claude/
+    # Allow direct relative path under .claude/ (existing or new)
     candidate = claude_dir / name
-    if candidate.exists():
+    if candidate.exists() or "/" in name:
         return candidate
     raise ValueError(
         f"Unknown asset {name!r}. Known: {', '.join(sorted(asset_kinds))}. "
-        f"Or pass a path relative to .claude/"
+        f"Or pass a path relative to .claude/ (e.g., skills/my-skill/SKILL.md)"
     )
 
 
