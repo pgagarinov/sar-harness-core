@@ -152,6 +152,39 @@ def edit_asset(
     return record
 
 
+def sed_asset(
+    claude_dir: Path,
+    repo_path: Path,
+    skill_name: str,
+    agent_names: list[str],
+    name: str,
+    pattern: str,
+    log_dir: Path | None = None,
+) -> dict[str, Any]:
+    """Apply a sed-like substitution to an asset. Logged, diffed, auto-committed.
+
+    Pattern format: s/search/replacement/[g]
+    Uses Python re.sub internally.
+    """
+    import re as _re
+
+    match = _re.match(r"s/((?:[^/\\]|\\.)*?)/((?:[^/\\]|\\.)*?)/(g?)$", pattern)
+    if not match:
+        raise ValueError(
+            f"Invalid sed pattern: {pattern!r}. Expected: s/pattern/replacement/[g]"
+        )
+
+    search, replacement, flags = match.groups()
+    count = 0 if flags == "g" else 1
+
+    old_content = read_asset(claude_dir, skill_name, agent_names, name)
+    new_content = _re.sub(search, replacement, old_content, count=count)
+
+    return edit_asset(
+        claude_dir, repo_path, skill_name, agent_names, name, new_content, log_dir
+    )
+
+
 def edit_history(state_dir: Path, limit: int = 20) -> list[dict[str, Any]]:
     """Read recent prompt edit history."""
     log_path = state_dir / "prompt-edits.jsonl"
