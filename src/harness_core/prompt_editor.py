@@ -126,14 +126,14 @@ def edit_asset(
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
-    # Append to edit log
-    edit_log_dir = log_dir or (repo_path / ".supervisor")
-    edit_log = edit_log_dir / "prompt-edits.jsonl"
-    edit_log.parent.mkdir(parents=True, exist_ok=True)
-    log_entry = {k: v for k, v in record.items() if k != "diff"}
-    log_entry["diff_lines"] = diff.count("\n")
-    with edit_log.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(log_entry) + "\n")
+    # Append to edit log (only when caller provides a log_dir)
+    if log_dir is not None:
+        edit_log = log_dir / "prompt-edits.jsonl"
+        edit_log.parent.mkdir(parents=True, exist_ok=True)
+        log_entry = {k: v for k, v in record.items() if k != "diff"}
+        log_entry["diff_lines"] = diff.count("\n")
+        with edit_log.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(log_entry) + "\n")
 
     # Auto-commit the .claude/ change so it survives reverts
     subprocess.run(
@@ -208,12 +208,12 @@ def delete_asset(
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
-    # Append to edit log
-    edit_log_dir = log_dir or (repo_path / ".supervisor")
-    edit_log = edit_log_dir / "prompt-edits.jsonl"
-    edit_log.parent.mkdir(parents=True, exist_ok=True)
-    with edit_log.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(record) + "\n")
+    # Append to edit log (only when caller provides a log_dir)
+    if log_dir is not None:
+        edit_log = log_dir / "prompt-edits.jsonl"
+        edit_log.parent.mkdir(parents=True, exist_ok=True)
+        with edit_log.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(record) + "\n")
 
     # Auto-commit
     subprocess.run(

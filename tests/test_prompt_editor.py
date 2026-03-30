@@ -10,6 +10,7 @@ from harness_core.prompt_editor import (
     list_assets,
     read_asset,
     edit_asset,
+    delete_asset,
     diff_text,
     edit_history,
 )
@@ -227,3 +228,49 @@ def test_edit_history_limit():
     history = edit_history(d, limit=3)
     assert len(history) == 3
     assert history[0]["name"] == "edit-7"
+
+
+def test_edit_asset_no_log_dir_does_not_pollute_edited_repo():
+    """When log_dir is None, edit_asset must NOT create .supervisor/ in the edited repo.
+
+    Bug: the default `log_dir or (repo_path / '.supervisor')` writes the edit
+    log into the repo being edited, which pollutes remote repos (e.g. target
+    gets .supervisor/ when researcher edits its .claude/ files).
+    """
+    repo, claude_dir = _init_temp_repo_with_assets()
+
+    edit_asset(
+        claude_dir=claude_dir,
+        repo_path=repo,
+        skill_name="test-skill",
+        agent_names=["test-agent"],
+        name="skill",
+        new_content="# Edited remotely\n",
+        log_dir=None,  # explicitly no log_dir — simulates unified CLI
+    )
+
+    # The edit should succeed
+    assert "Edited remotely" in (claude_dir / "skills" / "test-skill" / "SKILL.md").read_text()
+
+    # But .supervisor/ must NOT exist in the edited repo
+    assert not (repo / ".supervisor").exists(), (
+        f"edit_asset created .supervisor/ in the edited repo when log_dir=None. "
+        f"The edit log should be skipped, not written to the edited repo."
+    )
+
+
+def test_delete_asset_no_log_dir_does_not_pollute_edited_repo():
+    """Same bug check for delete_asset."""
+    repo, claude_dir = _init_temp_repo_with_assets()
+
+    delete_asset(
+        claude_dir=claude_dir,
+        repo_path=repo,
+        name="rules/test-rule.md",
+        log_dir=None,
+    )
+
+    assert not (claude_dir / "rules" / "test-rule.md").exists()
+    assert not (repo / ".supervisor").exists(), (
+        f"delete_asset created .supervisor/ in the edited repo when log_dir=None."
+    )
