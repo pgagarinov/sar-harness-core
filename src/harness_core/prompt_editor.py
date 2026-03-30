@@ -185,6 +185,49 @@ def sed_asset(
     )
 
 
+def delete_asset(
+    claude_dir: Path,
+    repo_path: Path,
+    name: str,
+    log_dir: Path | None = None,
+) -> dict[str, Any]:
+    """Delete an asset under .claude/, logged and auto-committed."""
+    target = claude_dir / name
+    if not target.exists():
+        raise FileNotFoundError(f"Asset {name!r} does not exist at {target}")
+
+    old_content = target.read_text(encoding="utf-8")
+    target.unlink()
+
+    record = {
+        "name": name,
+        "path": str(target),
+        "action": "delete",
+        "old_sha1": _sha1(old_content),
+        "old_lines": old_content.count("\n"),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+    # Append to edit log
+    edit_log_dir = log_dir or (repo_path / ".supervisor")
+    edit_log = edit_log_dir / "prompt-edits.jsonl"
+    edit_log.parent.mkdir(parents=True, exist_ok=True)
+    with edit_log.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(record) + "\n")
+
+    # Auto-commit
+    subprocess.run(
+        ["git", "add", str(target)],
+        cwd=repo_path, check=False, capture_output=True,
+    )
+    subprocess.run(
+        ["git", "commit", "-m", f"prompt-edit: delete {name}"],
+        cwd=repo_path, check=False, capture_output=True,
+    )
+
+    return record
+
+
 def edit_history(state_dir: Path, limit: int = 20) -> list[dict[str, Any]]:
     """Read recent prompt edit history."""
     log_path = state_dir / "prompt-edits.jsonl"
