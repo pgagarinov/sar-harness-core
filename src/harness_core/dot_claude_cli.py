@@ -48,7 +48,7 @@ def _resolve_repo(repo_arg: str) -> Path:
     """Resolve repo path from argument, alias, or env var.
 
     Supports aliases so pixi tasks don't need shell-specific syntax:
-      --repo target     → $TARGET_PATH or ../sar-rag-target
+      --repo target     → $SAR_TARGET_PATH or ../sar-rag-target
       --repo researcher → $RESEARCH_LOOP_REPO or ../sar-research-loop
       --repo supervisor → $SUPERVISOR_REPO or ../sar-supervisor
       --repo .          → current directory
@@ -56,7 +56,7 @@ def _resolve_repo(repo_arg: str) -> Path:
     """
     import os
     aliases: dict[str, tuple[str, str]] = {
-        "target": ("TARGET_PATH", "../sar-rag-target"),
+        "target": ("SAR_TARGET_PATH", "../sar-rag-target"),
         "researcher": ("RESEARCH_LOOP_REPO", "../sar-research-loop"),
         "supervisor": ("SUPERVISOR_REPO", "../sar-supervisor"),
     }
