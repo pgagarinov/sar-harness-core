@@ -55,15 +55,17 @@ def _resolve_repo(repo_arg: str) -> Path:
       --repo /abs/path  → literal path
     """
     import os
-    aliases: dict[str, tuple[str, str]] = {
-        "target": ("SAR_TARGET_PATH", "../sar-rag-target"),
-        "researcher": ("RESEARCH_LOOP_REPO", "../sar-research-loop"),
-        "supervisor": ("SUPERVISOR_REPO", "../sar-supervisor"),
+    aliases: dict[str, str] = {
+        "target": "SAR_TARGET_PATH",
+        "researcher": "RESEARCH_LOOP_REPO",
+        "supervisor": "SUPERVISOR_REPO",
     }
     if repo_arg in aliases:
-        env_var, default = aliases[repo_arg]
+        env_var = aliases[repo_arg]
         val = os.environ.get(env_var, "")
-        return Path(val).resolve() if val else Path(default).resolve()
+        if not val:
+            raise RuntimeError(f"{env_var} env var is not set. Required for --repo {repo_arg}.")
+        return Path(val).resolve()
     return Path(repo_arg).resolve()
 
 
